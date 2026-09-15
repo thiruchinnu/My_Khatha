@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>నా ఖాతా పుస్తకం — Personal Ledger</title>
+<style>
+  :root{
+    --paper:#EFEAD9;
+    --paper-line:#DCD4B8;
+    --card:#FBF8EF;
+    --card-line:#E3DAC0;
+    --ink:#1F3A52;
+    --ink-soft:#5B6E7A;
+    --stamp:#A63A32;
+    --stamp-bg:#F3DEDA;
+    --gold:#93711F;
+    --gold-bg:#F1E6C8;
+    --leaf:#3F6E4A;
+    --leaf-bg:#E1EBDE;
+    --shadow:rgba(31,58,82,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#DCD6C2;
+    font-family:Georgia,'Noto Sans Telugu','Tiro Telugu',serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  .book{
+    width:100%;
+    max-width:560px;
+    min-height:100vh;
+    background:
+      linear-gradient(var(--paper),var(--paper)) padding-box,
+      repeating-linear-gradient(var(--paper) 0 37px, var(--paper-line) 37px 38px) content-box;
+    box-shadow:0 0 40px var(--shadow);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .book::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:34px;
+    background:repeating-linear-gradient(180deg,#C9412F 0 2px, transparent 2px 26px);
+    opacity:0.35;
+    pointer-events:none;
+  }
+  header.top{
+    padding:18px 20px 14px 46px;
+    border-bottom:2px solid var(--ink);
+    background:var(--paper);
+    position:sticky;top:0;z-index:5;
+  }
+  header.top h1{
+    font-size:20px;
+    margin:0 0 2px 0;
+    letter-spacing:0.5px;
+  }
+  header.top .sub{
+    font-size:12px;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin-bottom:10px;
+  }
+  .balance-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .balance-row .lbl{font-size:12px;color:var(--ink-soft);}
+  .balance-row .amt{
+    font-family:'Courier New',monospace;
+    font-size:24px;
+    font-weight:bold;
+  }
+  main{
+    flex:1;
+    padding:16px 18px 90px 46px;
+    overflow-x:hidden;
+  }
+  h2.section-title{
+    font-size:15px;
+    margin:0 0 10px 0;
+    padding-bottom:6px;
+    border-bottom:1px solid var(--card-line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:2px;
+    padding:12px 14px;
+    margin-bottom:12px;
+    box-shadow:1px 2px 0 var(--card-line);
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat .lbl{font-size:11px;color:var(--ink-soft);}
+  .stat .val{font-family:'Courier New',monospace;font-size:18px;font-weight:bold;}
+  .stat.income .val{color:var(--leaf);}
+  .stat.expense .val{color:var(--stamp);}
+  .stat.saving .val{color:var(--gold);}
+  .alert{
+    background:var(--stamp-bg);
+    border:1px solid var(--stamp);
+    color:var(--stamp);
+    padding:10px 12px;
+    margin-bottom:12px;
+    font-size:13px;
+    border-radius:2px;
+  }
+  .alert .row{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+  .alert .row:first-child{margin-top:0;}
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:1px solid var(--ink);
+    background:var(--paper);
+    color:var(--ink);
+    padding:6px 10px;
+    border-radius:2px;
+    font-size:12px;
+  }
+  button.primary{background:var(--ink);color:var(--paper);}
+  button.danger{border-color:var(--stamp);color:var(--stamp);background:var(--stamp-bg);}
+  button.small{padding:3px 8px;font-size:11px;}
+  button:active{transform:translateY(1px);}
+  input,select{
+    font-family:'Courier New',monospace;
+    padding:7px 8px;
+    border:1px solid var(--card-line);
+    border-radius:2px;
+    background:#fff;
+    font-size:13px;
+    width:100%;
+  }
+  label{font-size:11px;color:var(--ink-soft);display:block;margin-bottom:3px;font-family:Georgia,serif;}
+  .field{margin-bottom:10px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  form .err{color:var(--stamp);font-size:11px;margin-top:4px;display:none;}
+  .entry{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 0;border-bottom:1px dashed var(--card-line);
+  }
+  .entry:last-child{border-bottom:none;}
+  .entry .meta{font-size:11px;color:var(--ink-soft);}
+  .entry .name{font-size:13px;}
+  .entry .amt{font-family:'Courier New',monospace;font-weight:bold;font-size:14px;}
+  .amt.income{color:var(--leaf);} .amt.expense{color:var(--stamp);} .amt.saving{color:var(--gold);}
+  .tag{
+    display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px;
+  }
+  .tag.paid{background:var(--leaf-bg);color:var(--leaf);}
+  .tag.overdue{background:var(--stamp-bg);color:var(--stamp);}
+  .tag.soon{background:var(--gold-bg);color:var(--gold);}
+  .tag.upcoming{background:#E6E9EC;color:var(--ink-soft);}
+  .progress-wrap{background:#E6E1CC;border-radius:6px;height:10px;overflow:hidden;margin:8px 0 6px;}
+  .progress-bar{height:100%;background:var(--gold);}
+  .progress-bar.on-track{background:var(--leaf);}
+  .empty{
+    text-align:center;color:var(--ink-soft);font-size:13px;font-style:italic;
+    padding:26px 10px;
+  }
+  .row-actions{display:flex;gap:6px;}
+  nav.bottom{
+    position:fixed;bottom:0;left:0;right:0;
+    display:flex;justify-content:center;
+    z-index:10;
+  }
+  nav.bottom .inner{
+    width:100%;max-width:560px;
+    display:flex;
+    background:var(--ink);
+    border-top:3px solid var(--gold);
+  }
+  nav.bottom button{
+    flex:1;background:transparent;border:none;color:#C9D2D8;
+    padding:9px 2px 8px;font-size:10px;border-radius:0;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav.bottom button .ic{font-size:17px;}
+  nav.bottom button.active{color:#fff;background:#2B4A66;border-top:2px solid var(--gold);margin-top:-2px;}
+  .chart{display:flex;align-items:flex-end;gap:6px;height:150px;padding:10px 2px 0;overflow-x:auto;}
+  .chart .bars{display:flex;flex-direction:column;align-items:center;min-width:34px;}
+  .chart .stack{display:flex;align-items:flex-end;gap:2px;height:118px;}
+  .chart .bar{width:9px;border-radius:2px 2px 0 0;}
+  .chart .bar.income{background:var(--leaf);}
+  .chart .bar.expense{background:var(--stamp);}
+  .chart .bar.saving{background:var(--gold);}
+  .chart .plabel{font-size:9px;color:var(--ink-soft);margin-top:4px;text-align:center;}
+  .legend{display:flex;gap:12px;font-size:11px;margin-top:6px;flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:4px;}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  .seg{display:flex;border:1px solid var(--ink);border-radius:3px;overflow:hidden;margin-bottom:12px;}
+  .seg button{flex:1;border:none;border-radius:0;background:var(--paper);}
+  .seg button.on{background:var(--ink);color:var(--paper);}
+  .helptext{font-size:10px;color:var(--ink-soft);margin-top:-4px;margin-bottom:8px;}
+  .datamgmt{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);padding:8px 16px;border-radius:20px;
+    font-size:12px;z-index:20;opacity:0;transition:opacity .25s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="book">
+  <header class="top">
+    <h1>నా ఖాతా పుస్తకం</h1>
+    <div class="sub">Personal Ledger · ఇంటర్నెట్ అవసరం లేదు · అంతా మీ పరికరంలోనే</div>
+    <div class="balance-row">
+      <div><div class="lbl">నిల్వ (Balance)</div><div class="amt" id="hdrBalance">₹0</div></div>
+      <div style="text-align:right"><div class="lbl">ఈ రోజు</div><div class="amt" id="hdrDate" style="font-size:13px;"></div></div>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav class="bottom"><div class="inner" id="tabbar"></div></nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- storage ---------- */
+const LS_KEYS = { tx:'lg_transactions', bills:'lg_bills', goals:'lg_goals' };
+let state = {
+  tx: JSON.parse(localStorage.getItem(LS_KEYS.tx) || '[]'),
+  bills: JSON.parse(localStorage.getItem(LS_KEYS.bills) || '[]'),
+  goals: JSON.parse(localStorage.getItem(LS_KEYS.goals) || '[]')
+};
+let activeTab = 'dash';
+
+function save(){
+  localStorage.setItem(LS_KEYS.tx, JSON.stringify(state.tx));
+  localStorage.setItem(LS_KEYS.bills, JSON.stringify(state.bills));
+  localStorage.setItem(LS_KEYS.goals, JSON.stringify(state.goals));
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- date helpers ---------- */
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function ymOf(dateStr){ return dateStr.slice(0,7); }
+function currentYM(){ return todayISO().slice(0,7); }
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function fmt(n){
+  n = Math.round(n||0);
+  const neg = n<0; n = Math.abs(n);
+  return (neg?'-':'') + '₹' + n.toLocaleString('en-IN');
+}
+function teluguMonth(m){
+  return ['జన','ఫిబ్ర','మార్చి','ఏప్రి','మే','జూన్','జూలై','ఆగ','సెప్','అక్టో','నవం','డిసె'][m];
+}
+function shortDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.getDate()+' '+teluguMonth(d.getMonth());
+}
+function startOfWeek(d){
+  d = new Date(d); const day = d.getDay();
+  const diff = (day===0?-6:1-day);
+  d.setDate(d.getDate()+diff); d.setHours(0,0,0,0);
+  return d;
+}
+function monthsBetween(d1,d2){
+  return Math.max(1,(d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth()) + (d2.getDate()>=d1.getDate()?0:-1) + 1);
+}
+
+/* ---------- tabs ---------- */
+const TABS = [
+  {id:'dash', ic:'🏦', label:'డాష్‌బోర్డ్'},
+  {id:'tx', ic:'💰', label:'లావాదేవీలు'},
+  {id:'bills', ic:'🧾', label:'బిల్లులు'},
+  {id:'goals', ic:'🎯', label:'లక్ష్యాలు'},
+  {id:'summary', ic:'📊', label:'సారాంశం'}
+];
+function renderTabbar(){
+  const bar = document.getElementById('tabbar');
+  bar.innerHTML = TABS.map(t=>`
+    <button class="${activeTab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      <span class="ic">${t.ic}</span><span>${t.label}</span>
+    </button>`).join('');
+}
+function setTab(id){ activeTab = id; render(); }
+
+/* ---------- master render ---------- */
+function render(){
+  renderTabbar();
+  document.getElementById('hdrDate').textContent = shortDate(todayISO());
+  const bal = sumBalance();
+  document.getElementById('hdrBalance').textContent = fmt(bal);
+  document.getElementById('hdrBalance').style.color = bal<0 ? 'var(--stamp)' : 'var(--ink)';
+  const main = document.getElementById('main');
+  if(activeTab==='dash') main.innerHTML = renderDash();
+  else if(activeTab==='tx') main.innerHTML = renderTx();
+  else if(activeTab==='bills') main.innerHTML = renderBills();
+  else if(activeTab==='goals') main.innerHTML = renderGoals();
+  else if(activeTab==='summary') main.innerHTML = renderSummary();
+  if(activeTab==='summary') drawChart(summaryMode);
+}
+
+/* ---------- computations ---------- */
+function sumBalance(){
+  let b=0;
+  state.tx.forEach(t=>{
+    if(t.type==='income') b+=t.amount;
+    else b-=t.amount; // expense & saving both leave spendable balance
+  });
+  return b;
+}
+function sumThisMonth(type){
+  const ym = currentYM();
+  return state.tx.filter(t=>t.type===type && ymOf(t.date)===ym).reduce((s,t)=>s+t.amount,0);
+}
+function totalMonthlyBills(){
+  return state.bills.filter(b=>b.active!==false).reduce((s,b)=>s+b.amount,0);
+}
+function billDueInfo(bill){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const ym = currentYM();
+  const day = Math.min(bill.dueDay, daysInMonth(now.getFullYear(), now.getMonth()));
+  const due = new Date(now.getFullYear(), now.getMonth(), day);
+  const daysUntil = Math.round((due-now)/86400000);
+  const paid = !!bill.paidMonths[ym];
+  let status = 'upcoming';
+  if(paid) status='paid';
+  else if(daysUntil<0) status='overdue';
+  else if(daysUntil<=3) status='soon';
+  return {due, daysUntil, paid, status};
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDash(){
+  const inc = sumThisMonth('income'), exp = sumThisMonth('expense'), sav = sumThisMonth('saving');
+  const dueBills = state.bills.filter(b=>b.active!==false).map(b=>({b,info:billDueInfo(b)}))
+    .filter(x=>!x.info.paid && x.info.daysUntil<=3);
+  let alertHtml = '';
+  if(dueBills.length){
+    alertHtml = `<div class="alert"><strong>⚠ బిల్లు హెచ్చరికలు</strong>`+
+      dueBills.map(x=>`<div class="row">
+        <span>${x.b.name} — ${fmt(x.b.amount)} ${x.info.daysUntil<0?`(${Math.abs(x.info.daysUntil)} రోజులు మించింది)`:x.info.daysUntil===0?'(ఈ రోజు గడువు)':`(${x.info.daysUntil} రోజుల్లో గడువు)`}</span>
+        <button class="small primary" onclick="markBillPaid('${x.b.id}')">చెల్లించాను</button>
+      </div>`).join('') + `</div>`;
+  }
+  const totalSaved = state.goals.reduce((s,g)=>s+goalProgress(g),0);
+  return `
+    ${alertHtml}
+    <h2 class="section-title">ఈ నెల చిత్రం</h2>
+    <div class="card grid2">
+      <div class="stat income"><div class="lbl">ఆదాయం</div><div class="val">${fmt(inc)}</div></div>
+      <div class="stat expense"><div class="lbl">ఖర్చులు</div><div class="val">${fmt(exp)}</div></div>
+      <div class="stat saving"><div class="lbl">పొదుపు/జమ</div><div class="val">${fmt(sav)}</div></div>
+      <div class="stat"><div class="lbl">నికర మిగులు</div><div class="val">${fmt(inc-exp-sav)}</div></div>
+    </div>
+    <h2 class="section-title">బిల్లులు</h2>
+    <div class="card grid2">
+      <div class="stat"><div class="lbl">నెలవారీ మొత్తం బిల్లులు</div><div class="val">${fmt(totalMonthlyBills())}</div></div>
+      <div class="stat"><div class="lbl">చెల్లించని బిల్లులు</div><div class="val">${state.bills.filter(b=>b.active!==false && !billDueInfo(b).paid).length}</div></div>
+    </div>
+    <h2 class="section-title">లక్ష్యాలు</h2>
+    <div class="card">
+      <div class="stat"><div class="lbl">మొత్తం జమ చేసినది (అన్ని లక్ష్యాలు)</div><div class="val" style="color:var(--gold)">${fmt(totalSaved)}</div></div>
+      ${state.goals.length===0 ? '<div class="helptext">ఇంకా లక్ష్యాలు లేవు — "లక్ష్యాలు" ట్యాబ్‌లో ఒకటి జోడించండి, ఉదా. 6 నెలల్లో ₹5,00,000 పొదుపు.</div>' : ''}
+    </div>
+    <h2 class="section-title">డేటా నిర్వహణ</h2>
+    <div class="card">
+      <div class="helptext">మీ డేటా ఈ పరికరంలోనే (బ్రౌజర్‌లో) నిల్వ ఉంటుంది. బ్యాకప్ ఫైల్ తీసుకోవడం మంచిది.</div>
+      <div class="datamgmt">
+        <button onclick="exportData()">⬇ బ్యాకప్ డౌన్‌లోడ్</button>
+        <button onclick="document.getElementById('importFile').click()">⬆ పునరుద్ధరించు</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+        <button class="danger" onclick="clearAll()">🗑 అన్నీ తొలగించు</button>
+      </div>
+    </div>
+  `;
+}
+function markBillPaid(id){
+  const bill = state.bills.find(b=>b.id===id);
+  const ym = currentYM();
+  const txId = uid();
+  bill.paidMonths[ym] = txId;
+  state.tx.push({id:txId, type:'expense', amount:bill.amount, category:'బిల్లు: '+bill.name, note:'', date:todayISO()});
+  save(); toast('బిల్లు చెల్లించినట్లు గుర్తించారు'); render();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ledger-backup-'+todayISO()+'.json';
+  a.click(); URL.revokeObjectURL(url);
+  toast('బ్యాకప్ డౌన్‌లోడ్ అయ్యింది');
+}
+function importData(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.tx || !data.bills || !data.goals) throw new Error('bad format');
+      state = {tx:data.tx, bills:data.bills, goals:data.goals};
+      save(); toast('డేటా పునరుద్ధరించబడింది'); render();
+    }catch(err){ toast('ఫైల్ చదవలేకపోయింది — సరైన బ్యాకప్ ఫైల్ ఎంచుకోండి'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+function clearAll(){
+  if(confirm('మొత్తం డేటా శాశ్వతంగా తొలగించాలా? ఇది వెనక్కి తీసుకోలేరు.')){
+    state = {tx:[], bills:[], goals:[]}; save(); toast('మొత్తం డేటా తొలగించబడింది'); render();
+  }
+}
+
+/* ---------- TRANSACTIONS ---------- */
+function renderTx(){
+  const goalOptions = state.goals.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const sorted = [...state.tx].sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const rows = sorted.slice(0,60).map(t=>`
+    <div class="entry">
+      <div>
+        <div class="name">${t.category||'—'}${t.note?(' · '+t.note):''}</div>
+        <div class="meta">${shortDate(t.date)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="amt ${t.type}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
+        <button class="small danger" onclick="deleteTx('${t.id}')">✕</button>
+      </div>
+    </div>`).join('') || '<div class="empty">ఇంకా లావాదేవీలు లేవు. కింద ఫారం ద్వారా జోడించండి.</div>';
+
+  return `
+    <h2 class="section-title">కొత్త లావాదేవీ</h2>
+    <div class="card">
+      <form onsubmit="return addTx(event)">
+        <div class="field">
+          <label>రకం</label>
+          <select id="txType" onchange="toggleGoalField()">
+            <option value="income">ఆదాయం (Income)</option>
+            <option value="expense">ఖర్చు (Expense)</option>
+            <option value="saving">పొదుపు / లక్ష్యానికి జమ (Saving)</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>మొత్తం (₹)</label><input type="number" id="txAmount" min="1" step="1" required></div>
+          <div class="field"><label>తేదీ</label><input type="date" id="txDate" value="${todayISO()}" required></div>
+        </div>
+        <div class="field"><label>వర్గం / గమనిక</label><input type="text" id="txCategory" placeholder="ఉదా. కిరాణా, జీతం, అద్దె"></div>
+        <div class="field" id="goalField" style="display:none;">
+          <label>ఏ లక్ష్యానికి?</label>
+          <select id="txGoal"><option value="">— ఎంచుకోండి —</option>${goalOptions}</select>
+        </div>
+        <div class="err" id="txErr"></div>
+        <button type="submit" class="primary">జోడించు</button>
+      </form>
+    </div>
+    <h2 class="section-title">ఇటీవలి లావాదేవీలు</h2>
+    <div class="card">${rows}</div>
+  `;
+}
+function toggleGoalField(){
+  const type = document.getElementById('txType').value;
+  document.getElementById('goalField').style.display = type==='saving' ? 'block' : 'none';
+}
+function addTx(ev){
+  ev.preventDefault();
+  const type = document.getElementById('txType').value;
+  const amount = parseFloat(document.getElementById('txAmount').value);
+  const date = document.getElementById('txDate').value;
+  const category = document.getElementById('txCategory').value.trim();
+  const goalId = type==='saving' ? document.getElementById('txGoal').value : '';
+  const err = document.getElementById('txErr');
+  if(!amount || amount<=0){ err.textContent='సరైన మొత్తం నమోదు చేయండి'; err.style.display='block'; return false; }
+  if(type==='saving' && !goalId){ err.textContent='దయచేసి లక్ష్యాన్ని ఎంచుకోండి'; err.style.display='block'; return false; }
+  state.tx.push({id:uid(), type, amount, category: category || (type==='saving'?'పొదుపు':'ఇతర'), note:'', date, goalId: goalId||undefined});
+  save(); toast('లావాదేవీ జోడించబడింది'); render();
+  return false;
+}
+function deleteTx(id){
+  if(!confirm('ఈ లావాదేవీని తొలగించాలా?')) return;
+  state.tx = state.tx.filter(t=>t.id!==id);
+  // also unlink any bill paidMonths pointing to this tx
+  state.bills.forEach(b=>{
+    Object.keys(b.paidMonths).forEach(ym=>{ if(b.paidMonths[ym]===id) delete b.paidMonths[ym]; });
+  });
+  save(); toast('తొలగించబడింది'); render();
+}
+
+/* ---------- BILLS ---------- */
+function renderBills(){
+  const rows = state.bills.map(b=>{
+    const info = billDueInfo(b);
+    const tagClass = info.paid?'paid':info.status;
+    const tagText = info.paid?'చెల్లించారు':info.status==='overdue'?`${Math.abs(info.daysUntil)} రోజులు మించింది`:info.status==='soon'?`${info.daysUntil} రోజుల్లో గడువు`:`${info.daysUntil} రోజుల్లో`;
+    return `
+    <div class="entry">
+      <div>
+        <div class="name">${b.name} <span class="tag ${tagClass}">${tagText}</span></div>
+        <div class="meta">ప్రతి నెల ${b.dueDay}న · ${b.category||'సాధారణ'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="amt expense">${fmt(b.amount)}</div>
+        <div class="row-actions">
+          ${info.paid? `<button class="small" onclick="unmarkBillPaid('${b.id}')">రద్దు</button>` : `<button class="small primary" onclick="markBillPaid('${b.id}')">చెల్లించాను</button>`}
+          <button class="small danger" onclick="deleteBill('${b.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">ఇంకా బిల్లులు జోడించలేదు.</div>';
+
+  return `
+    <h2 class="section-title">కొత్త బిల్లు జోడించండి</h2>
+    <div class="card">
+      <form onsubmit="return addBill(event)">
+        <div class="field"><label>బిల్లు పేరు</label><input type="text" id="billName" placeholder="ఉదా. కరెంటు బిల్లు, EMI, ఇంటర్నెట్" required></div>
+        <div class="field-row">
+          <div class="field"><label>మొత్తం (₹)</label><input type="number" id="billAmount" min="1" required></div>
+          <div class="field"><label>నెలలో ఏ తేదీన? (1-31)</label><input type="number" id="billDay" min="1" max="31" required></div>
+        </div>
+        <div class="field"><label>వర్గం</label><input type="text" id="billCategory" placeholder="ఉదా. యుటిలిటీ, రుణం"></div>
+        <div class="err" id="billErr"></div>
+        <button type="submit" class="primary">జోడించు</button>
+      </form>
+    </div>
+    <h2 class="section-title">మీ బిల్లులు · నెలవారీ మొత్తం: ${fmt(totalMonthlyBills())}</h2>
+    <div class="card">${rows}</div>
+  `;
+}
+function addBill(ev){
+  ev.preventDefault();
+  const name = document.getElementById('billName').value.trim();
+  const amount = parseFloat(document.getElementById('billAmount').value);
+  const dueDay = parseInt(document.getElementById('billDay').value,10);
+  const category = document.getElementById('billCategory').value.trim();
+  const err = document.getElementById('billErr');
+  if(!name){ err.textContent='బిల్లు పేరు నమోదు చేయండి'; err.style.display='block'; return false; }
+  if(!amount||amount<=0){ err.textContent='సరైన మొత్తం నమోదు చేయండి'; err.style.display='block'; return false; }
+  if(!dueDay||dueDay<1||dueDay>31){ err.textContent='1 నుండి 31 మధ్య తేదీ ఇవ్వండి'; err.style.display='block'; return false; }
+  state.bills.push({id:uid(), name, amount, dueDay, category, active:true, paidMonths:{}});
+  save(); toast('బిల్లు జోడించబడింది'); render();
+  return false;
+}
+function unmarkBillPaid(id){
+  const bill = state.bills.find(b=>b.id===id);
+  const ym = currentYM();
+  const txId = bill.paidMonths[ym];
+  if(txId) state.tx = state.tx.filter(t=>t.id!==txId);
+  delete bill.paidMonths[ym];
+  save(); toast('చెల్లింపు రద్దు చేయబడింది'); render();
+}
+function deleteBill(id){
+  if(!confirm('ఈ బిల్లును తొలగించాలా?')) return;
+  state.bills = state.bills.filter(b=>b.id!==id);
+  save(); toast('బిల్లు తొలగించబడింది'); render();
+}
+
+/* ---------- GOALS ---------- */
+function goalProgress(g){
+  return state.tx.filter(t=>t.type==='saving' && t.goalId===g.id).reduce((s,t)=>s+t.amount,0);
+}
+function renderGoals(){
+  const rows = state.goals.map(g=>{
+    const saved = goalProgress(g);
+    const remaining = Math.max(0, g.targetAmount - saved);
+    const pct = Math.min(100, Math.round((saved/g.targetAmount)*100));
+    const today = new Date(); today.setHours(0,0,0,0);
+    const deadline = new Date(g.deadline+'T00:00:00');
+    const monthsLeft = monthsBetween(today, deadline);
+    const reqMonthly = remaining/monthsLeft;
+    const reqWeekly = remaining/(monthsLeft*4.345);
+    const totalMonths = monthsBetween(new Date(g.startDate+'T00:00:00'), deadline);
+    const elapsed = totalMonths - monthsLeft;
+    const expectedPct = Math.min(100, Math.round((elapsed/totalMonths)*100));
+    const onTrack = pct >= expectedPct - 5;
+    const isLoan = g.type==='loan';
+    const overdue = deadline < today && remaining>0;
+    return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;">
+        <strong>${g.name}</strong>
+        <button class="small danger" onclick="deleteGoal('${g.id}')">✕</button>
+      </div>
+      <div class="meta">${isLoan?'రుణం చెల్లింపు':'పొదుపు లక్ష్యం'} · గడువు: ${shortDate(g.deadline)}</div>
+      <div class="progress-wrap"><div class="progress-bar ${onTrack?'on-track':''}" style="width:${pct}%"></div></div>
+      <div class="meta">${fmt(saved)} / ${fmt(g.targetAmount)} (${pct}%) ${overdue?'— గడువు దాటింది!':onTrack?'— ట్రాక్‌లో ఉంది ✓':'— వేగం పెంచాలి'}</div>
+      <div class="grid2" style="margin-top:8px;">
+        <div class="stat"><div class="lbl">${isLoan?'మిగిలిన బాకీ':'మిగిలిన లక్ష్యం'}</div><div class="val">${fmt(remaining)}</div></div>
+        <div class="stat"><div class="lbl">నెలకు అవసరం</div><div class="val" style="color:var(--gold)">${fmt(reqMonthly)}</div></div>
+        <div class="stat"><div class="lbl">వారానికి అవసరం</div><div class="val" style="color:var(--gold)">${fmt(reqWeekly)}</div></div>
+        <div class="stat"><div class="lbl">మిగిలిన నెలలు</div><div class="val">${monthsLeft}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input type="number" min="1" placeholder="మొత్తం జోడించండి" id="contrib_${g.id}" style="flex:1;">
+        <button class="primary small" onclick="addContribution('${g.id}')">జమ చేయి</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">ఇంకా లక్ష్యాలు లేవు. ఉదా: "6 నెలల్లో ₹5,00,000 పొదుపు" లేదా "5 సంవత్సరాల్లో విద్యా రుణం పూర్తి".</div>';
+
+  return `
+    <h2 class="section-title">కొత్త లక్ష్యం జోడించండి</h2>
+    <div class="card">
+      <form onsubmit="return addGoal(event)">
+        <div class="field"><label>లక్ష్యం పేరు</label><input type="text" id="goalName" placeholder="ఉదా. ఇంటి డౌన్‌పేమెంట్, విద్యా రుణం" required></div>
+        <div class="field">
+          <label>రకం</label>
+          <select id="goalType">
+            <option value="save">పొదుపు లక్ష్యం (Savings)</option>
+            <option value="loan">రుణం చెల్లింపు (Loan Repayment)</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>లక్ష్య మొత్తం (₹)</label><input type="number" id="goalAmount" min="1" placeholder="ఉదా. 500000" required></div>
+          <div class="field"><label>గడువు తేదీ</label><input type="date" id="goalDeadline" required></div>
+        </div>
+        <div class="err" id="goalErr"></div>
+        <button type="submit" class="primary">జోడించు</button>
+      </form>
+    </div>
+    <h2 class="section-title">మీ లక్ష్యాలు</h2>
+    ${rows}
+  `;
+}
+function addGoal(ev){
+  ev.preventDefault();
+  const name = document.getElementById('goalName').value.trim();
+  const type = document.getElementById('goalType').value;
+  const targetAmount = parseFloat(document.getElementById('goalAmount').value);
+  const deadline = document.getElementById('goalDeadline').value;
+  const err = document.getElementById('goalErr');
+  if(!name){ err.textContent='లక్ష్యం పేరు నమోదు చేయండి'; err.style.display='block'; return false; }
+  if(!targetAmount||targetAmount<=0){ err.textContent='సరైన మొత్తం ఇవ్వండి'; err.style.display='block'; return false; }
+  if(!deadline || new Date(deadline) <= new Date()){ err.textContent='భవిష్యత్తు తేదీని ఎంచుకోండి'; err.style.display='block'; return false; }
+  state.goals.push({id:uid(), name, type, targetAmount, deadline, startDate: todayISO()});
+  save(); toast('లక్ష్యం జోడించబడింది'); render();
+  return false;
+}
+function addContribution(goalId){
+  const input = document.getElementById('contrib_'+goalId);
+  const amount = parseFloat(input.value);
+  if(!amount||amount<=0){ toast('సరైన మొత్తం నమోదు చేయండి'); return; }
+  const goal = state.goals.find(g=>g.id===goalId);
+  state.tx.push({id:uid(), type:'saving', amount, category:(goal.type==='loan'?'రుణ చెల్లింపు: ':'పొదుపు: ')+goal.name, note:'', date:todayISO(), goalId});
+  save(); toast('జమ చేయబడింది'); render();
+}
+function deleteGoal(id){
+  if(!confirm('ఈ లక్ష్యాన్ని తొలగించాలా? దానికి సంబంధించిన జమలు లావాదేవీల్లో అలాగే ఉంటాయి.')) return;
+  state.goals = state.goals.filter(g=>g.id!==id);
+  save(); toast('లక్ష్యం తొలగించబడింది'); render();
+}
+
+/* ---------- SUMMARY ---------- */
+let summaryMode = 'monthly';
+function renderSummary(){
+  return `
+    <h2 class="section-title">సారాంశం</h2>
+    <div class="seg">
+      <button class="${summaryMode==='weekly'?'on':''}" onclick="setSummaryMode('weekly')">వారానికి</button>
+      <button class="${summaryMode==='monthly'?'on':''}" onclick="setSummaryMode('monthly')">నెలవారీ</button>
+    </div>
+    <div class="card">
+      <div id="chartHolder" class="chart"></div>
+      <div class="legend">
+        <span><i style="background:var(--leaf)"></i>ఆదాయం</span>
+        <span><i style="background:var(--stamp)"></i>ఖర్చు</span>
+        <span><i style="background:var(--gold)"></i>పొదుపు</span>
+      </div>
+    </div>
+    <div class="card" id="summaryTable"></div>
+  `;
+}
+function setSummaryMode(m){ summaryMode = m; render(); }
+function buildBuckets(mode){
+  const buckets = [];
+  if(mode==='monthly'){
+    const now = new Date();
+    for(let i=5;i>=0;i--){
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      buckets.push({label: teluguMonth(d.getMonth()), filter: t=>ymOf(t.date)===ym});
+    }
+  } else {
+    const today = new Date(); today.setHours(0,0,0,0);
+    for(let i=7;i>=0;i--){
+      const ws = startOfWeek(today); ws.setDate(ws.getDate()-7*i);
+      const we = new Date(ws); we.setDate(we.getDate()+6);
+      const wsISO = ws.toISOString().slice(0,10), weISO = we.toISOString().slice(0,10);
+      buckets.push({label: ws.getDate()+'/'+(ws.getMonth()+1), filter: t=> t.date>=wsISO && t.date<=weISO});
+    }
+  }
+  return buckets.map(b=>{
+    const items = state.tx.filter(b.filter);
+    return {
+      label: b.label,
+      income: items.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),
+      expense: items.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),
+      saving: items.filter(t=>t.type==='saving').reduce((s,t)=>s+t.amount,0)
+    };
+  });
+}
+function drawChart(mode){
+  const buckets = buildBuckets(mode);
+  const max = Math.max(1, ...buckets.map(b=>Math.max(b.income,b.expense,b.saving)));
+  const holder = document.getElementById('chartHolder');
+  if(!holder) return;
+  holder.innerHTML = buckets.map(b=>`
+    <div class="bars">
+      <div class="stack">
+        <div class="bar income" style="height:${(b.income/max*118)||0}px" title="ఆదాయం ${fmt(b.income)}"></div>
+        <div class="bar expense" style="height:${(b.expense/max*118)||0}px" title="ఖర్చు ${fmt(b.expense)}"></div>
+        <div class="bar saving" style="height:${(b.saving/max*118)||0}px" title="పొదుపు ${fmt(b.saving)}"></div>
+      </div>
+      <div class="plabel">${b.label}</div>
+    </div>`).join('');
+  const table = document.getElementById('summaryTable');
+  if(table){
+    table.innerHTML = buckets.slice().reverse().map(b=>`
+      <div class="entry">
+        <div class="name">${b.label}</div>
+        <div class="meta" style="display:flex;gap:10px;">
+          <span class="amt income">+${fmt(b.income)}</span>
+          <span class="amt expense">-${fmt(b.expense)}</span>
+          <span class="amt saving">${fmt(b.saving)}</span>
+        </div>
+      </div>`).join('');
+  }
+}
+
+/* ---------- init ---------- */
+render();
+</script>
+</body>
+</html>
